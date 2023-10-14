@@ -1,0 +1,2 @@
+# dnffile
+Declaractive dnf wrapper
