@@ -36,10 +36,10 @@ def distinct(iter: Iterable[T], keyfunc=None) -> Generator[T, Any, None]:
             yield item
 
 
-DNFILE_DIRECTORY: str = os.path.join(
+DNFFILE_DIRECTORY: str = os.path.join(
     notNone(
-        and_then(os.getenv("XDG_CONFIG_DIR"), lambda x: os.path.join(x, "dnfile"))
-        or and_then(os.getenv("HOME"), lambda x: os.path.join(x, ".config", "dnfile"))
+        and_then(os.getenv("XDG_CONFIG_DIR"), lambda x: os.path.join(x, "dnffile"))
+        or and_then(os.getenv("HOME"), lambda x: os.path.join(x, ".config", "dnffile"))
     )
 )
 
@@ -67,7 +67,7 @@ def dump():
     sys.stdout.writelines(map(lambda pkg: pkg.name + "\n", pkgs))
 
 
-def readDnfile(fpath: str) -> Iterable[str]:
+def readDnffile(fpath: str) -> Iterable[str]:
     print(f"file {fpath}")
 
     def notComment(line: str) -> bool:
@@ -80,17 +80,17 @@ def readDnfile(fpath: str) -> Iterable[str]:
 
 def readDnfDir() -> Iterable[str]:
     """
-    Reads the dnfile directory and returns all package names listed in dnfile*.txt
+    Reads the dnffile directory and returns all package names listed in dnffile*.txt
     """
-    files = os.listdir(DNFILE_DIRECTORY)
-    pattern = re.compile(r"^dnfile.*\.txt$")
+    files = os.listdir(DNFFILE_DIRECTORY)
+    pattern = re.compile(r"^dnffile.*\.txt$")
     return sorted(
         filter(
             lambda pname: pname != "",
             distinct(
                 flatten(
                     map(
-                        lambda f: readDnfile(os.path.join(DNFILE_DIRECTORY, f)),
+                        lambda f: readDnffile(os.path.join(DNFFILE_DIRECTORY, f)),
                         filter(pattern.match, files),
                     ),
                 )
