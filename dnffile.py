@@ -36,14 +36,6 @@ def distinct(iter: Iterable[T], keyfunc=None) -> Generator[T, Any, None]:
             yield item
 
 
-DNFFILE_DIRECTORY: str = os.path.join(
-    notNone(
-        and_then(os.getenv("XDG_CONFIG_DIR"), lambda x: os.path.join(x, "dnffile"))
-        or and_then(os.getenv("HOME"), lambda x: os.path.join(x, ".config", "dnffile"))
-    )
-)
-
-
 # TODO: share sack with getAllInstalled
 def getExplicitInstalled() -> Iterable[hawkey.Package]:
     base = dnf.Base()
@@ -68,7 +60,9 @@ def dump():
 
 
 def readDnffile(fpath: str) -> Iterable[str]:
-    print(f"file {fpath}")
+    """
+    Reads the dnffile and returns all packages names listed in the file
+    """
 
     def notComment(line: str) -> bool:
         commentPattern = re.compile(r"^\s*#")
@@ -78,11 +72,11 @@ def readDnffile(fpath: str) -> Iterable[str]:
         return map(str.strip, filter(notComment, fh.readlines()))
 
 
-def readDnfDir() -> Iterable[str]:
+def readDnfDir(dir: str) -> Iterable[str]:
     """
-    Reads the dnffile directory and returns all package names listed in dnffile*.txt
+    Reads the dnffile directory and returns all package names listed in any dnffile*.txt
     """
-    files = os.listdir(DNFFILE_DIRECTORY)
+    files = os.listdir(dir)
     pattern = re.compile(r"^dnffile.*\.txt$")
     return sorted(
         filter(
@@ -90,7 +84,7 @@ def readDnfDir() -> Iterable[str]:
             distinct(
                 flatten(
                     map(
-                        lambda f: readDnffile(os.path.join(DNFFILE_DIRECTORY, f)),
+                        lambda f: readDnffile(os.path.join(dir, f)),
                         filter(pattern.match, files),
                     ),
                 )
@@ -103,14 +97,22 @@ class AppState:
     def __init__(self, verbose=False):
         self.verbose = verbose
 
-    def log(self, *args, **kwargs):
+    def log(self, *args: Any, **kwargs: Any):
         print(*args, file=sys.stderr, **kwargs)
+
+    def dnffileDirectory(self) -> str:
+        return notNone(
+            and_then(os.getenv("XDG_CONFIG_DIR"), lambda x: os.path.join(x, "dnffile"))
+            or and_then(
+                os.getenv("HOME"), lambda x: os.path.join(x, ".config", "dnffile")
+            )
+        )
 
     def sync(self):
         # TODO: optimize: package names are sorted, to_install and to_remove can be optimize to take advantage of that
         installed = list(map(lambda x: x.name, getAllInstalled()))
         explicitly_installed = list(map(lambda x: x.name, getExplicitInstalled()))
-        wanted = list(readDnfDir())
+        wanted = list(readDnfDir(self.dnffileDirectory()))
         to_install = list(filter(lambda pname: pname not in installed, wanted))
 
         if self.verbose:
